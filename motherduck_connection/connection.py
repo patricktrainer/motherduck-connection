@@ -27,7 +27,7 @@ class MotherDuckConnection(
         
         return duckdb.connect(f"{url_scheme}{database}", **kwargs)
 
-    def query(self, query: str) -> DataFrame:
+    def query(self, query: str) -> duckdb.DuckDBPyRelation:
         """
         Executes a SQL query and returns the result as a DataFrame.
 
@@ -39,8 +39,9 @@ class MotherDuckConnection(
         """
 
         @cache_resource
-        def _query(_self, query: str) -> DataFrame:
+        def _query(_self, query: str):
             conn = _self._connect()
-            return conn.sql(query=query).df()
+
+            return conn.sql(query=query)
 
         return _query(self, query)
