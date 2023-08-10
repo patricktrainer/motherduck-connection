@@ -1,4 +1,3 @@
-import requests
 from motherduck_connection import MotherDuckConnection
 import streamlit as st
 
@@ -43,19 +42,21 @@ with st.echo():
     ).df()
     st.write(front_page_response)
 
-# st.text_input('hn id', value='37063238')
-# pass the id to the query
+
 def get_hn_item_endpoint(id):
+    # pass the id to the query
     return f"http://hn.algolia.com/api/v1/items/{id}"
 
 
-hn_item_id_input = st.text_input(label="enter hn id", placeholder='enter a valid hn_id')
+hn_item_id_input = st.text_input(
+    label="enter hn id", placeholder="enter a valid hn_id"
+)
 hn_items_endpoint = get_hn_item_endpoint(hn_item_id_input)
 
 with st.echo():
     # only run the query if the user has entered a valid value
     if not hn_item_id_input:
-        pass # do nothing
+        pass  # do nothing
 
     else:
         hn_items_response = conn._instance.sql(
@@ -83,12 +84,12 @@ with st.echo():
 
             select * from final
             """
-            ).df()
+        ).df()
 
         st.write(hn_items_response)
 
 st.markdown("# MotherDuck sample data")
-mother_duck_fqn = 'sample_data.hn.hacker_news'
+mother_duck_fqn = "sample_data.hn.hacker_news"
 with st.echo():
     hn_sample_response = conn._instance.sql(
         f"""
@@ -108,24 +109,3 @@ with st.echo():
         """
     ).df()
     st.write(hn_sample_response)
-
-
-# st.markdown("## sample_data.hn.hacker_news")
-# hn_sample_data = conn._instance.sql(
-#     """
-#         select 
-#             id::varchar as hn_id,
-#             timestamp,
-#             by as author, 
-#             title,
-#             text,
-#             descendants, -- descendants is the number of top-level comments
-#             score::int as score,
-#             url
-#         from sample_data.hn.hacker_news 
-#         where type = 'story'
-#         order by score, descendants desc
-#         limit 20
-#         """
-# ).df()
-# st.write(hn_sample_data)
