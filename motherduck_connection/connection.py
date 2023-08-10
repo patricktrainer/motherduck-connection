@@ -25,7 +25,7 @@ class MotherDuckConnection(
         if database is None:
             database = "my_db"
         
-        return duckdb.connect(f"{url_scheme}{database}", **kwargs)
+        return duckdb.connect(f"{url_scheme}{database}", read_only=True, **kwargs)
 
     def query(self, query: str) -> duckdb.DuckDBPyRelation:
         """
