@@ -1,111 +1,28 @@
 from motherduck_connection import MotherDuckConnection
 import streamlit as st
+import examples.motherduck_sql as motherduck_sql
 
 
-conn = st.experimental_connection("motherduck", type=MotherDuckConnection)
-
-st.markdown("# Query apis with sql using MotherDuck")
-st.markdown("## HN front page")
-hn_front_page_endpoint = "http://hn.algolia.com/api/v1/search?tags=front_page"
-
-with st.echo():
-    front_page_response = conn._instance.sql(
-        f"""
-        with hits as (
-                select 
-                    row(j.hits) as hits
-                from read_json_auto('{hn_front_page_endpoint}') as j 
-            ),
-
-            h as (
-                select
-                    unnest(hits, recursive := True) as hit
-                from hits
-            ),
-
-            final as (
-                select
-                    unnest(h.hits, recursive := True) as col
-                from h
-            )
-
-        select 
-            objectID::varchar as hn_id,
-            created_at,
-            author,
-            title,
-            url,
-            points::int as points,
-            num_comments
-        from final
+st.markdown("## Use MotherDuck to query duckdb, rest apis, and more")
+st.markdown("### A duckdb table on MotherDuck")
+st.markdown(
     """
-    ).df()
-    st.write(front_page_response)
-
-
-def get_hn_item_endpoint(id):
-    # pass the id to the query
-    return f"http://hn.algolia.com/api/v1/items/{id}"
-
-
-hn_item_id_input = st.text_input(
-    label="enter hn id", placeholder="enter a valid hn_id"
+    The table below is from the sample data in MotherDuck. 
+    From here, a query is run to get the top 20 stories from Hacker News. 
+    What's awesome about this is the table is already materialized and ready in MotherDuck.
+    This means the query is fast and the data is as fresh as your last sync.
+    """
 )
-hn_items_endpoint = get_hn_item_endpoint(hn_item_id_input)
+conn = st.experimental_connection("motherduck", type=MotherDuckConnection)
+st.write(motherduck_sql.query_motherduck(conn, "sample_data.hn.hacker_news"))
 
-with st.echo():
-    # only run the query if the user has entered a valid value
-    if not hn_item_id_input:
-        pass  # do nothing
+st.markdown("### Replies to a post on HN")
+input_hn_id = st.text_input(
+    label="HN post id",
+    placeholder="the number after `item?id=`",
+    value="37146532",  # an article about cloud data warehouses
+)
+st.write(motherduck_sql.query_hn_items(conn, input_hn_id))
 
-    else:
-        hn_items_response = conn._instance.sql(
-            f"""
-            with q as (
-                    select 
-                        unnest(row(j.id, j.children)) as c,
-                    from read_json_auto('{hn_items_endpoint}') as j
-                ),
-
-                c as (
-                    select 
-                        unnest(children) as col 
-                    from q
-                ),
-
-                final as (
-                    select 
-                        col.id::varchar as hn_id,
-                        col.created_at,
-                        col.author,
-                        col.text  
-                    from c
-            )
-
-            select * from final
-            """
-        ).df()
-
-        st.write(hn_items_response)
-
-st.markdown("# MotherDuck sample data")
-mother_duck_fqn = "sample_data.hn.hacker_news"
-with st.echo():
-    hn_sample_response = conn._instance.sql(
-        f"""
-        select 
-            id::varchar as hn_id,
-            timestamp,
-            by as author, 
-            title,
-            text,
-            descendants, -- total count of comments (including nested comments)
-            score::int as score,
-            url
-        from {mother_duck_fqn} 
-        where type = 'story'
-        order by score desc
-        limit 20
-        """
-    ).df()
-    st.write(hn_sample_response)
+st.markdown("### Current front page on HN")
+st.write(motherduck_sql.query_hn_front_page(conn))
